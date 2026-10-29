@@ -37,9 +37,16 @@ ml/recortar_anatomia.py  gera demo/modelos/ a partir do pacote BodyParts3D do pr
 1. Indexe os livros (no seu PC):
    ```powershell
    pip install -r ml/requirements.txt
-   python ml/indexar_livros.py "D:\documents\Downloads\Items01\Anatomía" --materia anatomia
+   python -u ml/indexar_livros.py "D:/documents/Downloads/Items01/Anatomía" --materia anatomia
    ```
-   Isso cria `backend/data/biblioteca.db`. Livros escaneados (só imagem) aparecem no final com o comando de OCR.
+   Isso cria `backend/data/biblioteca.db`.
+
+   **Livros escaneados** (só imagem, sem texto): instale o [Tesseract para Windows](https://github.com/UB-Mannheim/tesseract/wiki) marcando o idioma **Spanish** e rode com `--ocr` (dá para fazer um livro por vez com `--somente`):
+   ```bash
+   pip install pymupdf
+   python -u ml/indexar_livros.py "D:/documents/Downloads/Items01/Anatomía" --ocr --somente Latarjet
+   ```
+   O OCR grava só o texto (não cria cópia do PDF) e, se parar no meio, continua da página onde parou.
 2. Configure o back-end com a mesma conta Oracle do VinaCare: copie `backend/.env.example` para `backend/.env`.
 3. Rode a API:
    ```powershell
