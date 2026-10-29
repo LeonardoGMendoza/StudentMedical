@@ -31,16 +31,35 @@ header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var
 .idiomas button[aria-pressed="true"]{background:#fff;color:var(--ink)}
 .xp{font-weight:700;font-size:14px;background:rgba(255,255,255,.1);padding:7px 12px;border-radius:999px;white-space:nowrap}
 
-main{display:grid;grid-template-columns:minmax(320px,44%) 1fr;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
+main{display:grid;grid-template-columns:minmax(340px,56%) 1fr;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
 .palco{position:relative;background:radial-gradient(ellipse at 50% 35%,var(--stage1),var(--stage2));overflow:hidden}
-#cena{position:absolute;inset:0}
-.balao{position:absolute;left:16px;right:16px;bottom:118px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;
-  box-shadow:0 6px 20px rgba(15,27,45,.12);font-weight:600;max-height:34%;overflow:auto}
+.atlas{position:absolute;inset:0;display:none}
+.palco[data-modo="atlas"] .atlas{display:block}
+.prof{position:absolute;inset:0;transition:all .35s ease;z-index:2}
+.palco[data-modo="atlas"] .prof{inset:auto auto 14px 14px;width:clamp(170px,30%,280px);height:clamp(210px,42%,360px);border-radius:18px;overflow:hidden;
+  background:linear-gradient(180deg,#2b3532,#141a18);box-shadow:0 10px 30px rgba(15,27,45,.35);border:2px solid #fff}
+.prof-status{position:absolute;left:0;right:0;top:45%;text-align:center;font-weight:700;color:var(--muted);z-index:1;pointer-events:none}
+.palco[data-modo="atlas"] .prof-status{color:#cfd8d4}
+.barra-atlas{position:absolute;left:14px;right:14px;top:12px;display:none;justify-content:space-between;align-items:flex-start;gap:10px;z-index:3}
+.palco[data-modo="atlas"] .barra-atlas{display:flex}
+.peca{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-weight:700;box-shadow:0 4px 14px rgba(15,27,45,.1);max-width:55%}
+.peca:empty{display:none}
+.controles{display:flex;gap:8px;align-items:center;margin-left:auto;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+.deslizar{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700}
+.deslizar input{width:120px;accent-color:var(--univ)}
+.btn.mini{min-height:34px;padding:5px 10px;font-size:13px}
+.credito{position:absolute;right:12px;bottom:8px;font-size:11px;color:var(--muted);display:none;z-index:3}
+.palco[data-modo="atlas"] .credito{display:block}
+.balao{position:absolute;left:16px;right:16px;bottom:72px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;
+  box-shadow:0 6px 20px rgba(15,27,45,.12);font-weight:600;max-height:30%;overflow:auto;z-index:4}
+.palco[data-modo="atlas"] .balao{left:calc(14px + clamp(170px,30%,280px) + 12px);bottom:14px;max-height:40%}
 .balao[hidden]{display:none}
-.balao::after{content:"";position:absolute;top:-9px;left:50%;width:16px;height:16px;background:#fff;border-left:1px solid var(--line);border-top:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
-.dica-girar{position:absolute;left:0;right:0;bottom:62px;text-align:center;font-size:13px;color:var(--muted)}
-.acoes-palco{position:absolute;left:16px;right:16px;bottom:14px;display:flex;justify-content:center;gap:8px}
-
+.comecar{position:absolute;left:50%;bottom:150px;transform:translateX(-50%);z-index:5;border:0;border-radius:999px;background:var(--univ);color:#fff;font:inherit;font-weight:800;padding:14px 24px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.comecar[hidden]{display:none}
+.dica-girar{position:absolute;left:0;right:0;bottom:44px;text-align:center;font-size:13px;color:var(--muted);display:none}
+.palco[data-modo="atlas"] .dica-girar{display:block;left:auto;right:12px;bottom:26px}
+.acoes-palco{position:absolute;right:14px;bottom:14px;z-index:4}
+.palco[data-modo="atlas"] .acoes-palco{display:none}
 .btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:12px;padding:9px 14px;font-weight:700;min-height:44px;display:inline-flex;align-items:center;gap:8px}
 .btn.prim{background:var(--univ);border-color:var(--univ);color:var(--univ-ink)}
 .btn:disabled{opacity:.5;cursor:default}
@@ -104,13 +123,17 @@ form.perg input{flex:1;font:inherit;border:1px solid var(--line);border-radius:1
 [hidden]{display:none!important}
 
 @media (max-width:820px){
-  main{grid-template-columns:1fr;grid-template-rows:46vh auto;height:auto}
-  .palco{height:46vh;position:sticky;top:56px;z-index:2}
+  main{grid-template-columns:1fr;grid-template-rows:50vh auto;height:auto}
+  .palco{height:50vh;position:sticky;top:56px;z-index:2}
   .painel{padding:16px}
   .marca small{display:none}
   .xp{display:none}
-  .dica-girar{display:none}
-  .balao{bottom:66px;font-size:14px;padding:9px 12px;max-height:40%}
+  .palco[data-modo="atlas"] .prof{width:36%;height:52%;left:8px;bottom:8px}
+  .palco[data-modo="atlas"] .balao{left:calc(36% + 16px);right:8px;bottom:8px;font-size:13px;padding:8px 10px;max-height:52%}
+  .palco[data-modo="atlas"] .dica-girar,.palco[data-modo="atlas"] .credito{display:none}
+  .deslizar span{display:none}
+  .deslizar input{width:90px}
+  .balao{bottom:66px;font-size:14px;padding:9px 12px}
 }
 @media (prefers-reduced-motion:reduce){.tema{transition:none}}
 </style>
@@ -131,18 +154,29 @@ form.perg input{flex:1;font:inherit;border:1px solid var(--line);border-radius:1
 </header>
 
 <main>
-  <section class="palco" aria-label="Estudiante 3D">
-    <div id="cena"></div>
-    <div class="balao" id="balao" aria-live="polite" hidden></div>
-    <div class="dica-girar" id="dicaGirar"></div>
-    <div class="acoes-palco">
-      <button type="button" class="btn" id="btnTrocar"></button>
+  <section class="palco" id="palco" data-modo="avatar" aria-label="Estudiante 3D">
+    <div id="atlas" class="atlas" aria-label="Atlas 3D"></div>
+    <div class="barra-atlas" id="barraAtlas">
+      <span class="peca" id="peca" aria-live="polite"></span>
+      <div class="controles">
+        <label class="deslizar"><span id="rotExplodir"></span><input type="range" id="explodir" min="0" max="100" value="0"></label>
+        <button type="button" class="btn mini" id="btnCentro"></button>
+      </div>
     </div>
+    <div class="dica-girar" id="dicaGirar"></div>
+    <div class="credito" id="credito"></div>
+    <div id="prof" class="prof"><div class="prof-status" id="profStatus"></div></div>
+    <div class="balao" id="balao" aria-live="polite" hidden></div>
+    <button type="button" class="comecar" id="btnComecar" hidden></button>
+    <div class="acoes-palco"><button type="button" class="btn" id="btnTrocar"></button></div>
   </section>
 
   <section class="painel" id="painel"></section>
 </main>
 
+<script type="importmap">
+{ "imports": { "three": "./js/vendor/three.module.js", "three/addons/": "./js/vendor/addons/" } }
+</script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>

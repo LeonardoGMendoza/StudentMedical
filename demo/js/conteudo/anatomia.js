@@ -13,6 +13,7 @@ export const MATERIAS = [
 export const TEMAS = [
   {
     id: 'osteologia',
+    destaques: ["skull|frontal bone|parietal|temporal bone|occipital|sphenoid|ethmoid|vertebra|^atlas$|^axis$|sacrum|rib|sternum|manubrium|xiphoid", "patella|parietal bone|scaphoid|lunate|capitate|hamate|lumbar vertebra", "femur|humerus|tibia", "femur|hip bone|sternum"],
     icone: '🦴',
     titulo: { es: 'Osteología general', pt: 'Osteologia geral', en: 'General osteology' },
     livros: ['Rouvière 11ª ed. — Tomo 1', 'Latarjet 4ª ed. — Tomo 1', 'Netter 5ª ed.'],
@@ -50,6 +51,7 @@ export const TEMAS = [
   },
   {
     id: 'cabeza',
+    destaques: ["frontal bone|parietal bone|temporal bone|occipital bone|sphenoid|ethmoid", "mandible", "hyoid", "sternocleidomastoid"],
     icone: '💀',
     titulo: { es: 'Cabeza y cuello', pt: 'Cabeça e pescoço', en: 'Head and neck' },
     livros: ['Testut — Anatomía topográfica (Cabeza)', 'Bouchet — Cara y cabeza', 'Rouvière 9ª ed. — Tomo 1'],
@@ -87,6 +89,7 @@ export const TEMAS = [
   },
   {
     id: 'superior',
+    destaques: ["clavicle|scapula|humerus|radius|ulna|scaphoid|lunate|triquetral|pisiform|trapezi|capitate|hamate|metacarpal|phalanx", "biceps brachii|brachialis|coracobrachialis|deltoid|triceps", "supraspinatus|infraspinatus|teres minor|subscapularis", "scaphoid|lunate|triquetral|pisiform|trapezi|capitate|hamate|flexor digitorum"],
     icone: '💪',
     titulo: { es: 'Miembro superior', pt: 'Membro superior', en: 'Upper limb' },
     livros: ['Latarjet 4ª ed. — Tomo 1', 'Testut-Latarjet 9ª ed. — Tomo 1', 'Apuntes — Músculos del miembro superior'],
@@ -124,6 +127,7 @@ export const TEMAS = [
   },
   {
     id: 'torax',
+    destaques: [" rib$|rib |costal|sternum|manubrium|xiphoid", "wall of|leaflet|cusp|aorta|pulmonary trunk", "bronch|trachea", "diaphragm"],
     icone: '🫁',
     titulo: { es: 'Tórax', pt: 'Tórax', en: 'Thorax' },
     livros: ['Rouvière 9ª ed. — Tomo 2', 'Galli — Mediastino', 'Netter 5ª ed.'],
@@ -161,6 +165,7 @@ export const TEMAS = [
   },
   {
     id: 'abdomen',
+    destaques: ["stomach|colon|jejunum|ileum|duodenum|rectum|kidney|spleen|liver|pancreas|gallbladder", "liver|gallbladder|hepatic|cystic duct", "kidney|ureter|pancreas|duodenum|abdominal aorta", "appendix|ileocecal|mesoappendix"],
     icone: '🩻',
     titulo: { es: 'Abdomen', pt: 'Abdome', en: 'Abdomen' },
     livros: ['Rouvière 9ª ed. — Tomo 2', 'Testut-Latarjet 9ª ed. — Tomo 4', 'Pro — Anatomía clínica'],
@@ -198,6 +203,7 @@ export const TEMAS = [
   },
   {
     id: 'inferior',
+    destaques: ["femur", "piriformis|biceps femoris|semitendinosus|semimembranosus|adductor magnus", "rectus femoris|vastus", "femur|tibia|patella"],
     icone: '🦵',
     titulo: { es: 'Miembro inferior', pt: 'Membro inferior', en: 'Lower limb' },
     livros: ['Latarjet 4ª ed. — Tomo 1', 'Rouvière 9ª ed. — Tomo 3', 'Yokochi 6ª ed.'],
@@ -235,6 +241,7 @@ export const TEMAS = [
   },
   {
     id: 'pares',
+    destaques: ["optic nerve|oculomotor|trochlear|ophthalmic|frontal nerve|lacrimal nerve|nasociliary", "optic nerve|optic chiasm|optic tract", "oculomotor|trochlear", "medulla oblongata|pons"],
     icone: '🧠',
     titulo: { es: 'Pares craneales', pt: 'Nervos cranianos', en: 'Cranial nerves' },
     livros: ['Apuntes — Pares craneales 12', 'Curso Coscarelli — Nervios craneales', 'Rouvière 11ª ed. — Tomo 4'],

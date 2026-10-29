@@ -20,12 +20,12 @@ function respostaLocal(texto, idioma) {
       tema.pontos[lingua].forEach((ponto, i) => {
         const alvo = new Set(palavras(ponto + ' ' + tema.titulo[lingua]));
         const n = busca.reduce((acc, w) => acc + (alvo.has(w) ? 1 : [...alvo].some(a => a.startsWith(w.slice(0, 5))) ? 0.5 : 0), 0);
-        if (n > nota) { nota = n; melhor = { ponto: tema.pontos[idioma][i], tema }; }
+        if (n > nota) { nota = n; melhor = { ponto: tema.pontos[idioma][i], tema, i }; }
       });
     }
   }
   if (!melhor || nota < 1.5) return null;
-  return { resposta: melhor.ponto, fontes: melhor.tema.livros.slice(0, 2).map(l => ({ livro: l })), modo: 'demo' };
+  return { resposta: melhor.ponto, fontes: melhor.tema.livros.slice(0, 2).map(l => ({ livro: l })), modo: 'demo', tema: melhor.tema.id, ponto: melhor.i };
 }
 
 export async function perguntar({ texto, idioma, tema, perfil }) {

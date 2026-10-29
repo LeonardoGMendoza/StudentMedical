@@ -8,22 +8,28 @@
 
 ## O que já faz
 
-- **Estudante 3D** (homem ou mulher) com jaleco, scrub, touca e estetoscópio. Escolha a universidade e o uniforme muda de cor, com o nome bordado no peito:
+- **Professor(a) 3D realista** (os mesmos avatares do VinaCare: mulher e homem), com boca sincronizada, piscar e expressões. Escolha a universidade e a roupa muda, com o nome bordado no peito (mulher: jaleco branco + scrub; homem: scrub):
   - **UMAX** – Universidad María Auxiliadora (scrub vinho)
   - **UCP** – Universidad Central del Paraguay (scrub azul royal)
   - **UMS** – Universidad María Serrana (scrub verde)
 - **3 idiomas**: espanhol, português e inglês (tela, aulas, quiz, voz e respostas da IA).
+- **Atlas 3D de anatomia** (como os apps Human Body Atlas/Voka): gire, aproxime, **separe as peças** com o controle deslizante e toque numa peça para o professor dizer o nome (ES/PT/EN). Enquanto ele explica cada ponto da aula, as estruturas citadas acendem no modelo.
 - **7 temas de Anatomia**: osteologia, cabeça e pescoço, membro superior, tórax, abdome, membro inferior e nervos cranianos. Cada um com aula falada, quiz com explicação e indicação do livro para aprofundar.
 - **Pergunte à IA**: na demo responde com o conteúdo das aulas; com o servidor ligado, o tutor (Oracle Generative AI) responde usando **os seus livros** e cita livro e página.
 
 ## Estrutura
 
 ```
-demo/                 página estática (GitHub Pages), sem build: three.js + JavaScript
+demo/                 página estática (GitHub Pages), sem build: three.js + import map
+  js/professor.js     avatar realista (TalkingHead) vestido com o uniforme da universidade
+  js/atlas.js         atlas 3D: separar peças, destacar, tocar para ver o nome
   js/universidades.js cores dos uniformes (fácil de ajustar)
-  js/conteudo/        aulas e quizzes em ES/PT/EN
+  js/conteudo/        aulas, quizzes e glossário das peças em ES/PT/EN
+  modelos/            recortes 3D de cada aula (BodyParts3D)
+  avatars/            avatares 3D (os mesmos do VinaCare)
 backend/              API Python FastAPI: tutor de IA (OCI), memória do aluno, voz (Azure)
 ml/indexar_livros.py  lê os PDFs dos livros e cria a biblioteca de busca (SQLite FTS5)
+ml/recortar_anatomia.py  gera demo/modelos/ a partir do pacote BodyParts3D do projeto human-atlas
 ```
 
 ## Ligar a IA com os livros
@@ -52,6 +58,9 @@ ml/indexar_livros.py  lê os PDFs dos livros e cria a biblioteca de busca (SQLit
 
 ## Créditos
 
+- **Modelos anatômicos:** BodyParts3D 4.0, © The Database Center for Life Science (DBCLS), licença [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Geometria simplificada e recortada por aula a partir do pacote do projeto [human-atlas](https://github.com/ashemag/human-atlas) (código MIT).
+- **Avatar falante:** [TalkingHead](https://github.com/met4citizen/TalkingHead) (MIT, © Mika Suominen).
+- **Avatares de exemplo** (`avaturn.glb` do Avaturn, `avatarsdk.glb` do Avatar SDK/MetaPerson): exemplos do TalkingHead, **somente uso não comercial**. Para lançar o app, criar avatares próprios com licença comercial. A roupa é repintada no navegador com as cores de cada universidade.
 - [three.js](https://threejs.org) (MIT) em `demo/js/vendor/`.
 - Escudos dos uniformes são desenhos genéricos com a sigla, não os logotipos oficiais das universidades.
 

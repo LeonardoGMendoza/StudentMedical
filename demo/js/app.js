@@ -1,8 +1,8 @@
-import * as THREE from './vendor/three.module.js';
-import { OrbitControls } from './vendor/OrbitControls.js';
-import { criarBoneco } from './boneco.js';
-import { UNIVERSIDADES, TONS_PELE, CORES_CABELO } from './universidades.js';
+import { Professor } from './professor.js';
+import { Atlas } from './atlas.js';
+import { UNIVERSIDADES } from './universidades.js';
 import { MATERIAS, TEMAS } from './conteudo/anatomia.js';
+import { nomePeca } from './conteudo/glossario.js';
 import { T, IDIOMAS, VOZ_LANG } from './i18n.js';
 import { perguntar, temServidor } from './tutor.js';
 
@@ -14,10 +14,10 @@ const idiomaNavegador = (navigator.language || 'es').slice(0, 2);
 let idioma = ler('sm.idioma', IDIOMAS.includes(idiomaNavegador) ? idiomaNavegador : 'es');
 let perfil = ler('sm.perfil', null);
 const novoPerfil = !perfil;
-perfil = perfil || { id: 'a' + Math.random().toString(36).slice(2, 10), genero: 'mulher', univ: 'umax', nome: '', pele: TONS_PELE[1], cabelo: CORES_CABELO[0], touca: true };
+perfil = perfil || { id: 'a' + Math.random().toString(36).slice(2, 10), genero: 'mulher', univ: 'umax', nome: '' };
 let progresso = ler('sm.progresso', { pontos: 0, feitos: {} });
 let tela = novoPerfil ? 'config' : 'temas';
-let temaAtual = null, aba = 'aula', quizIdx = 0, quizAcertos = 0, respondida = false;
+let temaAtual = null, aba = 'aula', quizIdx = 0, quizAcertos = 0, respondida = false, audioLiberado = false;
 const chat = [];
 
 const t = () => T[idioma];
@@ -25,110 +25,68 @@ const univ = () => UNIVERSIDADES.find(u => u.id === perfil.univ) || UNIVERSIDADE
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// ---------- cena 3D ----------
-const caixa = $('#cena');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFShadowMap;
-caixa.appendChild(renderer.domElement);
-const cena = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-camera.position.set(0.35, 1.25, 3.6);
-const controles = new OrbitControls(camera, renderer.domElement);
-controles.target.set(0, 0.88, 0);
-controles.enablePan = false;
-controles.minDistance = 1.6;
-controles.maxDistance = 5;
-controles.minPolarAngle = 0.6;
-controles.maxPolarAngle = 1.75;
-controles.enableDamping = true;
+// ---------- professor (avatar realista) ----------
+const statusProf = (txt) => { $('#profStatus').textContent = txt || ''; };
+let professor = null;
+try { professor = new Professor($('#prof')); } catch (e) { console.error(e); statusProf('3D indisponível neste navegador.'); }
 
-cena.add(new THREE.HemisphereLight('#ffffff', '#8a9bb0', 1.6));
-const sol = new THREE.DirectionalLight('#ffffff', 2.2);
-sol.position.set(2, 4, 3);
-sol.castShadow = true;
-sol.shadow.mapSize.set(1024, 1024);
-sol.shadow.camera.left = -1.5; sol.shadow.camera.right = 1.5; sol.shadow.camera.top = 2.2; sol.shadow.camera.bottom = -0.5;
-cena.add(sol);
-const luzFundo = new THREE.DirectionalLight('#cfe0ff', 0.8);
-luzFundo.position.set(-3, 2, -2);
-cena.add(luzFundo);
-const chao = new THREE.Mesh(new THREE.CircleGeometry(0.9, 48), new THREE.ShadowMaterial({ opacity: 0.18 }));
-chao.rotation.x = -Math.PI / 2;
-chao.receiveShadow = true;
-cena.add(chao);
-
-let boneco = null;
-function montarBoneco() {
-  if (boneco) {
-    cena.remove(boneco.grupo);
-    boneco.grupo.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); } });
-  }
-  boneco = criarBoneco({ ...perfil, univ: univ() });
-  cena.add(boneco.grupo);
+async function vestirProfessor() {
+  if (!professor) return;
   document.documentElement.style.setProperty('--univ', univ().scrub);
+  statusProf(t().carregando);
+  try {
+    await professor.vestirE(perfil, univ(), (ev) => { if (ev.lengthComputable) statusProf(`${t().carregando} ${Math.round(ev.loaded / ev.total * 100)}%`); });
+    statusProf('');
+  } catch (e) { console.error(e); statusProf('⚠️'); }
 }
 
-function redimensionar() {
-  const w = caixa.clientWidth, h = caixa.clientHeight;
-  renderer.setSize(w, h, false);
-  renderer.domElement.style.width = '100%';
-  renderer.domElement.style.height = '100%';
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  // enquadra o boneco inteiro (altura ~2 m) em tela larga ou estreita
-  const tg = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-  const d = Math.max(1.12 / tg, 0.62 / (tg * camera.aspect));
-  const dir = camera.position.clone().sub(controles.target).normalize();
-  camera.position.copy(controles.target).addScaledVector(dir, d);
-  controles.maxDistance = Math.max(5, d * 1.4);
-}
-new ResizeObserver(redimensionar).observe(caixa);
-
-let anterior = performance.now();
-renderer.setAnimationLoop((agora) => {
-  const dt = Math.min(0.05, (agora - anterior) / 1000);
-  anterior = agora;
-  controles.update();
-  if (boneco) boneco.tick(dt, agora / 1000);
-  renderer.render(cena, camera);
+// ---------- atlas 3D ----------
+const atlas = new Atlas($('#atlas'), (peca) => {
+  if (!peca) { $('#peca').textContent = ''; return; }
+  const nome = nomePeca(peca.nome, idioma);
+  $('#peca').textContent = nome;
+  falar(t().esteE(nome));
 });
+atlas.desvioEsquerda = () => { const pf = $('#prof'); return $('#palco').dataset.modo === 'atlas' && pf ? pf.offsetWidth + 14 : 0; };
+$('#explodir').oninput = (e) => atlas.aplicarExplosao(e.target.value / 100);
+$('#btnCentro').onclick = () => { atlas.resetar(); atlas.destacar(null); };
+
+function modoPalco(m) { $('#palco').dataset.modo = m; setTimeout(() => atlas.redimensionar(), 400); }
 
 // ---------- voz ----------
-let filaFala = 0;
 function escolherVoz() {
-  const vozes = speechSynthesis.getVoices();
-  const alvo = VOZ_LANG[idioma];
-  const genero = perfil.genero === 'mulher' ? /female|mujer|mulher|paulina|luciana|francisca|helena|sabina|monica|samantha|zira|jenny|aria|google español|google português/i : /male|hombre|homem|jorge|diego|daniel|antonio|david|guy|pablo/i;
+  if (!('speechSynthesis' in window)) return null;
+  const vozes = speechSynthesis.getVoices(), alvo = VOZ_LANG[idioma];
+  const fem = /female|mujer|mulher|paulina|luciana|francisca|helena|sabina|monica|samantha|zira|jenny|aria|tania|camila|maria|google español|google português/i;
+  const masc = /male|hombre|homem|jorge|diego|daniel|antonio|david|guy|pablo|mario|alex/i;
+  const gen = perfil.genero === 'mulher' ? fem : masc;
   const doIdioma = vozes.filter(v => v.lang.replace('_', '-').toLowerCase().startsWith(alvo.slice(0, 2)));
-  return doIdioma.find(v => v.lang.replace('_', '-') === alvo && genero.test(v.name)) || doIdioma.find(v => genero.test(v.name)) ||
-    doIdioma.find(v => v.lang.replace('_', '-') === alvo) || doIdioma[0] || null;
+  const nota = (v) => (v.lang.replace('_', '-') === alvo ? 100 : 0) + (gen.test(v.name) ? 50 : 0) + (/natural|neural|online|premium|enhanced/i.test(v.name) ? 30 : 0);
+  return doIdioma.sort((a, b) => nota(b) - nota(a))[0] || null;
 }
-if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
 
-function falar(texto) {
+let filaFala = 0;
+async function falar(texto) {
   const id = ++filaFala;
   const balao = $('#balao');
   balao.hidden = false;
   balao.textContent = texto;
-  boneco && boneco.falar(true);
-  return new Promise((resolve) => {
-    const fim = () => { if (id === filaFala) boneco && boneco.falar(false); resolve(); };
-    if (!('speechSynthesis' in window)) { setTimeout(fim, Math.min(9000, 600 + texto.length * 55)); return; }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = VOZ_LANG[idioma];
-    const v = escolherVoz();
-    if (v) u.voice = v;
-    u.rate = 1;
-    u.onend = fim; u.onerror = fim;
-    speechSynthesis.speak(u);
-    // segurança: alguns navegadores não disparam onend
-    setTimeout(() => { if (id === filaFala && !speechSynthesis.speaking) fim(); }, 1500 + texto.length * 90);
-  });
+  if (!professor || !audioLiberado) return;
+  professor.parar();
+  await professor.falarComVoz(texto, { lang: VOZ_LANG[idioma], voz: escolherVoz() });
+  return id === filaFala;
 }
-function calar() { filaFala++; if ('speechSynthesis' in window) speechSynthesis.cancel(); boneco && boneco.falar(false); }
+function calar() { filaFala++; professor && professor.parar(); }
+
+// O navegador só libera o som depois de um toque
+function liberarAudio() {
+  if (audioLiberado) return;
+  audioLiberado = true;
+  professor && professor.liberarAudio();
+  $('#btnComecar').hidden = true;
+}
+document.addEventListener('pointerdown', liberarAudio, { once: true });
 
 // ---------- telas ----------
 function cabecalho() {
@@ -139,22 +97,24 @@ function cabecalho() {
   $('#btnTrocar').textContent = t().trocar;
   $('#btnTrocar').hidden = tela === 'config';
   $('#dicaGirar').textContent = t().girar;
+  $('#rotExplodir').textContent = t().explodir;
+  $('#btnCentro').textContent = t().resetar;
+  $('#credito').textContent = t().credito;
+  $('#btnComecar').textContent = '▶ ' + t().comecar;
+  if (!$('#peca').textContent && tela === 'tema') $('#peca').textContent = '';
 }
 
 function telaConfig() {
   const x = t();
   const opt = (campo, valor, rotulo) => `<button type="button" class="opt" data-campo="${campo}" data-valor="${valor}" aria-pressed="${perfil[campo] === valor}">${rotulo}</button>`;
-  const cores = (campo, lista) => lista.map(c => `<button type="button" class="cor-btn" style="background:${c}" data-campo="${campo}" data-valor="${c}" aria-pressed="${perfil[campo] === c}" aria-label="${c}"></button>`).join('');
   return `
     <h2>${x.meuEstudante}</h2>
     <div class="campo"><span>${x.universidade}</span><div class="seg">
       ${UNIVERSIDADES.map(u => `<button type="button" class="univ" data-campo="univ" data-valor="${u.id}" aria-pressed="${perfil.univ === u.id}">
         <span class="cor" style="background:${u.scrub}"></span><span><b>${u.sigla}</b><small>${u.nome}</small></span></button>`).join('')}
     </div></div>
-    <div class="campo"><span>&nbsp;</span><div class="seg">${opt('genero', 'mulher', '👩‍⚕️ ' + x.mulher)}${opt('genero', 'homem', '👨‍⚕️ ' + x.homem)}${`<button type="button" class="opt" data-campo="touca" data-valor="toggle" aria-pressed="${perfil.touca}">🧢 ${x.touca}</button>`}</div></div>
+    <div class="campo"><span>&nbsp;</span><div class="seg">${opt('genero', 'mulher', '👩‍⚕️ ' + x.mulher)}${opt('genero', 'homem', '👨‍⚕️ ' + x.homem)}</div></div>
     <div class="campo"><label><span>${x.nome}</span><input type="text" id="nome" maxlength="18" value="${esc(perfil.nome)}" autocomplete="given-name"></label></div>
-    <div class="campo"><span>${x.pele}</span><div class="seg">${cores('pele', TONS_PELE)}</div></div>
-    <div class="campo"><span>${x.cabelo}</span><div class="seg">${cores('cabelo', CORES_CABELO)}</div></div>
     <button type="button" class="btn prim" id="salvar">${x.salvar} →</button>`;
 }
 
@@ -174,7 +134,8 @@ function telaTema() {
   const abas = ['aula', 'quiz', 'perguntar'].map(a => `<button type="button" role="tab" data-aba="${a}" aria-selected="${aba === a}">${x[a]}</button>`).join('');
   let corpo = '';
   if (aba === 'aula') {
-    corpo = `<ol class="pontos">${tm.pontos[idioma].map((p, i) => `<li data-i="${i}">${esc(p)}</li>`).join('')}</ol>
+    corpo = `<p class="aviso">👆 ${x.tocarPeca}</p>
+      <ol class="pontos">${tm.pontos[idioma].map((p, i) => `<li data-i="${i}" tabindex="0">${esc(p)}</li>`).join('')}</ol>
       <div class="linha-botoes"><button type="button" class="btn prim" id="ouvir">🔊 ${x.ouvir}</button>
       <button type="button" class="btn" id="irQuiz">${x.comecarQuiz} →</button></div>
       <div class="livros"><b>📚 ${x.paraAprofundar}</b><ul>${tm.livros.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>`;
@@ -200,67 +161,86 @@ function telaTema() {
 
 function render() {
   cabecalho();
-  const painel = $('#painel');
-  painel.innerHTML = tela === 'config' ? telaConfig() : tela === 'tema' ? telaTema() : telaTemas();
+  $('#painel').innerHTML = tela === 'config' ? telaConfig() : tela === 'tema' ? telaTema() : telaTemas();
+  modoPalco(tela === 'tema' ? 'atlas' : 'avatar');
   ligar();
+}
+
+// ---------- aula: o professor explica e o atlas destaca ----------
+async function explicarPonto(i) {
+  const itens = document.querySelectorAll('.pontos li');
+  itens.forEach(li => li.classList.toggle('atual', +li.dataset.i === i));
+  if (itens[i]) itens[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  atlas.destacar([temaAtual.destaques[i]]);
+  return falar(temaAtual.pontos[idioma][i]);
+}
+
+async function abrirTema(id) {
+  temaAtual = TEMAS.find(x => x.id === id);
+  tela = 'tema'; aba = 'aula'; quizIdx = 0; quizAcertos = 0; chat.length = 0;
+  $('#explodir').value = 0; atlas.explosao = 0; $('#peca').textContent = '';
+  render();
+  falar(t().abrirTema(temaAtual.titulo[idioma]));
+  try { await atlas.carregar(temaAtual.id); } catch (e) { console.error(e); }
 }
 
 // ---------- eventos ----------
 function ligar() {
-  document.querySelectorAll('[data-campo]').forEach(b => b.onclick = () => {
-    const c = b.dataset.campo;
-    perfil[c] = c === 'touca' ? !perfil.touca : b.dataset.valor;
-    montarBoneco();
-    if (c === 'univ' || c === 'genero') boneco.acenar();
+  document.querySelectorAll('[data-campo]').forEach(b => b.onclick = async () => {
+    perfil[b.dataset.campo] = b.dataset.valor;
     render();
+    await vestirProfessor();
   });
   const nome = $('#nome');
-  if (nome) nome.oninput = () => { perfil.nome = nome.value.trim(); clearTimeout(nome._t); nome._t = setTimeout(montarBoneco, 300); };
+  if (nome) nome.oninput = () => { perfil.nome = nome.value.trim(); };
   const salvar = $('#salvar');
-  if (salvar) salvar.onclick = () => { gravar('sm.perfil', perfil); montarBoneco(); tela = 'temas'; render(); boneco.acenar(); falar(t().saudacao(perfil.nome)); };
+  if (salvar) salvar.onclick = async () => {
+    liberarAudio();
+    gravar('sm.perfil', perfil);
+    tela = 'temas'; render();
+    await vestirProfessor();   // recarrega com o nome bordado
+    professor && professor.acenar();
+    falar(t().saudacao(perfil.nome));
+  };
 
-  document.querySelectorAll('[data-tema]').forEach(b => b.onclick = () => {
-    temaAtual = TEMAS.find(x => x.id === b.dataset.tema);
-    tela = 'tema'; aba = 'aula'; quizIdx = 0; quizAcertos = 0; chat.length = 0;
-    render();
-    falar(t().abrirTema(temaAtual.titulo[idioma]));
-  });
+  document.querySelectorAll('[data-tema]').forEach(b => b.onclick = () => { liberarAudio(); abrirTema(b.dataset.tema); });
   const vt = $('#voltarTemas'); if (vt) vt.onclick = () => { calar(); tela = 'temas'; render(); };
-  document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => { calar(); aba = b.dataset.aba; if (aba === 'quiz') { quizIdx = 0; quizAcertos = 0; respondida = false; } render(); if (aba === 'quiz') lerPergunta(); });
+  document.querySelectorAll('[data-aba]').forEach(b => b.onclick = () => {
+    calar(); aba = b.dataset.aba; atlas.destacar(null);
+    if (aba === 'quiz') { quizIdx = 0; quizAcertos = 0; respondida = false; }
+    render(); if (aba === 'quiz') lerPergunta();
+  });
+  document.querySelectorAll('.pontos li').forEach(li => {
+    li.onclick = () => { calar(); explicarPonto(+li.dataset.i); };
+    li.onkeydown = (e) => { if (e.key === 'Enter') li.click(); };
+  });
 
   const ouvir = $('#ouvir');
   if (ouvir) ouvir.onclick = async () => {
     if (ouvir.dataset.tocando) { calar(); delete ouvir.dataset.tocando; ouvir.textContent = '🔊 ' + t().ouvir; return; }
     ouvir.dataset.tocando = '1'; ouvir.textContent = '⏹ ' + t().parar;
-    const minha = filaFala + 1;
-    const itens = document.querySelectorAll('.pontos li');
-    for (let i = 0; i < itens.length; i++) {
-      itens.forEach(li => li.classList.remove('atual'));
-      itens[i].classList.add('atual');
-      itens[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      await falar(temaAtual.pontos[idioma][i]);
-      if (filaFala !== minha + i) break;
+    for (let i = 0; i < temaAtual.pontos[idioma].length; i++) {
+      const continua = await explicarPonto(i);
+      if (continua === false || !ouvir.dataset.tocando) break;
     }
-    itens.forEach(li => li.classList.remove('atual'));
+    document.querySelectorAll('.pontos li').forEach(li => li.classList.remove('atual'));
     delete ouvir.dataset.tocando; ouvir.textContent = '🔊 ' + t().ouvir;
   };
-  const irQuiz = $('#irQuiz'); if (irQuiz) irQuiz.onclick = () => { calar(); aba = 'quiz'; quizIdx = 0; quizAcertos = 0; respondida = false; render(); lerPergunta(); };
+  const irQuiz = $('#irQuiz'); if (irQuiz) irQuiz.onclick = () => { calar(); aba = 'quiz'; quizIdx = 0; quizAcertos = 0; respondida = false; atlas.destacar(null); render(); lerPergunta(); };
   const refazer = $('#refazer'); if (refazer) refazer.onclick = () => { quizIdx = 0; quizAcertos = 0; respondida = false; render(); lerPergunta(); };
   const voltar = $('#voltar'); if (voltar) voltar.onclick = () => { tela = 'temas'; render(); };
 
   document.querySelectorAll('.opcao').forEach(b => b.onclick = () => {
     if (respondida) return;
     respondida = true;
-    const q = temaAtual.quiz[quizIdx];
-    const i = +b.dataset.i;
-    const ok = i === q.c;
+    const q = temaAtual.quiz[quizIdx], i = +b.dataset.i, ok = i === q.c;
     document.querySelectorAll('.opcao').forEach(o => { o.disabled = true; if (+o.dataset.i === q.c) o.classList.add('certa'); });
     if (!ok) b.classList.add('errada');
-    if (ok) { quizAcertos++; progresso.pontos += 10; boneco.acenar(); }
+    if (ok) { quizAcertos++; progresso.pontos += 10; professor && professor.humor('feliz'); } else { professor && professor.humor('carinho'); }
     const frase = `${ok ? t().certo : t().errado} ${q.e[idioma]}`;
     $('#explica').innerHTML = `<div class="explica">${esc(frase)}</div><div class="linha-botoes"><button type="button" class="btn prim" id="proxima">${t().proxima} →</button></div>`;
     $('#proxima').onclick = () => {
-      quizIdx++; respondida = false;
+      quizIdx++; respondida = false; professor && professor.humor('neutro');
       if (quizIdx >= temaAtual.quiz.length) {
         progresso.feitos[temaAtual.id] = Math.max(progresso.feitos[temaAtual.id] || 0, quizAcertos);
         gravar('sm.progresso', progresso);
@@ -275,14 +255,14 @@ function ligar() {
   const form = $('#formPerg');
   if (form) form.onsubmit = async (e) => {
     e.preventDefault();
-    const inp = $('#txtPerg');
-    const texto = inp.value.trim();
+    const texto = $('#txtPerg').value.trim();
     if (!texto) return;
     chat.push({ quem: 'eu', texto });
     render();
     const r = await perguntar({ texto, idioma, tema: temaAtual && temaAtual.id, perfil });
     const resposta = r.resposta || t().naoSei;
     chat.push({ quem: 'ia', texto: resposta, fontes: r.fontes || [] });
+    if (r.tema === temaAtual.id && r.ponto >= 0) atlas.destacar([temaAtual.destaques[r.ponto]]);
     render();
     const c = $('#chat'); c && c.lastElementChild && c.lastElementChild.scrollIntoView({ block: 'nearest' });
     $('#txtPerg') && $('#txtPerg').focus();
@@ -295,16 +275,18 @@ function lerPergunta() {
 }
 
 document.querySelectorAll('.idiomas button').forEach(b => b.onclick = () => {
-  calar();
+  liberarAudio(); calar();
   idioma = b.dataset.lang;
   gravar('sm.idioma', idioma);
   render();
+  if (atlas.selecionada) $('#peca').textContent = nomePeca(atlas.selecionada.userData.nome, idioma);
   if (tela === 'tema' && temaAtual) falar(t().abrirTema(temaAtual.titulo[idioma]));
   else if (tela !== 'config') falar(t().saudacao(perfil.nome));
 });
 $('#btnTrocar').onclick = () => { calar(); tela = 'config'; render(); };
+$('#btnComecar').onclick = () => { liberarAudio(); professor && professor.acenar(); falar(t().saudacao(perfil.nome)); };
 
-montarBoneco();
-redimensionar();
 render();
+$('#btnComecar').hidden = novoPerfil;
+vestirProfessor();
 if (!novoPerfil) { $('#balao').hidden = false; $('#balao').textContent = t().saudacao(perfil.nome); }
