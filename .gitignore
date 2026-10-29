@@ -1,0 +1,14 @@
+# Livros e o banco gerado a partir deles: NUNCA no GitHub (direitos autorais)
+*.pdf
+*.epub
+*.djvu
+biblioteca/
+backend/data/
+*.db
+# Segredos
+.env
+backend/.env
+# Python / Node
+__pycache__/
+.venv/
+node_modules/
