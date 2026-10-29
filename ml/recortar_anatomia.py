@@ -1,6 +1,6 @@
 """Gera os modelos 3D de cada aula a partir do BodyParts3D 4.0 (CC BY 4.0), pacote do projeto human-atlas.
 
-Uso: python ml/recortar_anatomia.py <pasta public/models do human-atlas> demo/modelos
+Uso: python ml/recortar_anatomia.py <pasta public/models do human-atlas> app/public/modelos
 Saída por tema: <tema>.json (peças, nomes, centros) + <tema>.bin (geometria compacta).
 Formato do .bin por peça: posições Int16 (quantizadas na caixa do tema), normais Int8, índices Uint16/Uint32.
 """
