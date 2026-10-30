@@ -1,7 +1,7 @@
 // Tutor: usa o back-end (IA da Oracle + livros) quando existe; senão responde com as aulas da demo.
 import { TEMAS } from './conteudo/anatomia.js';
 
-const API_BUILD = (import.meta.env && import.meta.env.VITE_API_URL) || '';
+const API_BUILD = (import.meta.env && import.meta.env.VITE_API_URL) || 'https://studentmedical.sandlj.com.br';
 function apiUrl() {
   const q = new URLSearchParams(location.search).get('api');
   if (q) { try { localStorage.setItem('sm.api', q); } catch (e) {} return q; }
