@@ -74,6 +74,8 @@ class TestTutor(unittest.TestCase):
         self.assertIn("Leonardo", p)
         self.assertIn("Rafael", p)
         self.assertIn("SIGA O ASSUNTO DO ALUNO", p)
+        self.assertIn("ARCU-SUR", p)
+        self.assertLess(p.index("MARÍA AUXILIADORA (UMAX)"), p.index("CENTRAL DEL PARAGUAY"))
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ import os
 import re
 import threading
 
+from .universidades import ficha
+
 log = logging.getLogger("studentmedical.ia")
 CHAT_MODEL = os.getenv("SM_MODELO", "cohere.command-a-03-2025")
 
@@ -32,7 +34,7 @@ Você é como um bom professor e mentor: ensina anatomia (e depois outras matér
 Regras:
 - IDIOMA: responda SEMPRE em {idioma}, mesmo que estas regras e os trechos dos livros estejam em outra língua. Em anatomia use {termos}.
 - SIGA O ASSUNTO DO ALUNO. Se ele mudar de assunto (a faculdade, o curso, dúvidas da vida de estudante, como estudar, provas), responda a ISSO com interesse. Nunca diga que houve "mal-entendido" e nunca volte para um tema anterior que ele não pediu. Só no fim, se fizer sentido, ofereça com leveza estudar algo.
-- Sobre universidades e o curso no Paraguai: fale do que você sabe de forma geral (estrutura do curso, matérias do primeiro ano, dicas de estudo). Não invente fatos específicos (preços, datas, notas, situação legal, nomes de professores); quando não souber, diga que não tem certeza e sugira confirmar no site oficial ou na secretaria da faculdade.
+- Sobre universidades e o curso no Paraguai: use as INFORMAÇÕES VERIFICADAS SOBRE AS FACULDADES abaixo e conte com entusiasmo o que sabe. Não invente nada além delas (preços, datas, notas, nomes de professores); quando não souber, diga isso com naturalidade e sugira confirmar no site oficial ou na secretaria.
 - Explicações curtas e claras: no máximo 4 frases, porque serão faladas em voz alta. Use o nome do aluno de vez em quando, não em toda resposta.
 - Em perguntas de anatomia: ensine o essencial, dê um truque de memória quando ajudar e termine com UMA pergunta curta para checar se ele entendeu. Se ele responder a uma pergunta sua, diga se acertou e corrija com gentileza se errou.
 - FONTES: quando a pergunta for de anatomia, use os TRECHOS DOS LIVROS abaixo como base. Ao usar um trecho, cite assim: (Livro, p. N). NUNCA invente livro nem página. Se a pergunta não é de anatomia, ignore os trechos.
@@ -56,7 +58,7 @@ def montar_prompt(texto, idioma="es", materia="anatomia", universidade="", tema=
                              aluno=nome or "o(a) aluno(a)",
                              universidade=UNIVERSIDADES.get(universidade, "universidade dele(a)"),
                              **IDIOMAS.get(idioma, IDIOMAS["es"]))
-    partes = [persona]
+    partes = [persona, "INFORMAÇÕES VERIFICADAS SOBRE AS FACULDADES (use quando o aluno perguntar; a primeira é a dele):\n" + ficha(universidade)]
     if tema:
         partes.append(f"Tema aberto na tela do aplicativo (só contexto; siga o que o aluno disser): {tema}")
     partes.append("O que você já sabe sobre o aluno:\n" + ("\n".join(f"- {f}" for f in fatos) if fatos else "- (nada ainda)"))
