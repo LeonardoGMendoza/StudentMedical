@@ -68,9 +68,12 @@ class TestTutor(unittest.TestCase):
         self.assertEqual(interpretar("só texto")["resposta"], "só texto")
 
     def test_prompt_tem_universidade_e_idioma(self):
-        p = montar_prompt("x", idioma="es", universidade="umax")
+        p = montar_prompt("x", idioma="es", universidade="umax", nome="Leonardo", genero="homem")
         self.assertIn("María Auxiliadora", p)
         self.assertIn("español", p)
+        self.assertIn("Leonardo", p)
+        self.assertIn("Rafael", p)
+        self.assertIn("SIGA O ASSUNTO DO ALUNO", p)
 
 
 if __name__ == "__main__":

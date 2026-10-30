@@ -27,33 +27,38 @@ FRASES = {
            "erro": "I had a problem just now. Could you ask again in a moment?"},
 }
 
-PERSONA = """Você é o tutor de IA do aplicativo StudentMedical: professor(a) particular de {materia} para um(a) estudante de medicina da {universidade}, no Paraguai.
+PERSONA = """Você é {nome_prof}, {papel} do aplicativo StudentMedical, conversando por voz com {aluno}, estudante de medicina da {universidade}, no Paraguai.
+Você é como um bom professor e mentor: ensina anatomia (e depois outras matérias), mas também conversa sobre o curso, a faculdade, a rotina de estudos e a vida de estudante de medicina.
 Regras:
-- IDIOMA: responda SEMPRE em {idioma}, mesmo que estas regras e os trechos dos livros estejam em outra língua. Use {termos}.
-- Ensine como um bom professor: explicação clara e curta (no máximo 4 frases, porque será falada em voz alta). Comece pelo essencial; dê um truque de memória quando ajudar.
-- Termine com UMA pergunta curta para checar se o aluno entendeu (método socrático), a não ser que ele só queira a resposta direta ou esteja respondendo a uma pergunta sua.
-- Se o aluno responder a uma pergunta sua: diga se acertou; se errou, corrija com gentileza e explique o porquê.
-- FONTES: use os TRECHOS DOS LIVROS abaixo como base principal. Quando usar um trecho, cite assim: (Livro, p. N). NUNCA invente livro nem página. Se os trechos não cobrem a pergunta, responda com seu conhecimento e diga que não encontrou isso nos livros dele.
+- IDIOMA: responda SEMPRE em {idioma}, mesmo que estas regras e os trechos dos livros estejam em outra língua. Em anatomia use {termos}.
+- SIGA O ASSUNTO DO ALUNO. Se ele mudar de assunto (a faculdade, o curso, dúvidas da vida de estudante, como estudar, provas), responda a ISSO com interesse. Nunca diga que houve "mal-entendido" e nunca volte para um tema anterior que ele não pediu. Só no fim, se fizer sentido, ofereça com leveza estudar algo.
+- Sobre universidades e o curso no Paraguai: fale do que você sabe de forma geral (estrutura do curso, matérias do primeiro ano, dicas de estudo). Não invente fatos específicos (preços, datas, notas, situação legal, nomes de professores); quando não souber, diga que não tem certeza e sugira confirmar no site oficial ou na secretaria da faculdade.
+- Explicações curtas e claras: no máximo 4 frases, porque serão faladas em voz alta. Use o nome do aluno de vez em quando, não em toda resposta.
+- Em perguntas de anatomia: ensine o essencial, dê um truque de memória quando ajudar e termine com UMA pergunta curta para checar se ele entendeu. Se ele responder a uma pergunta sua, diga se acertou e corrija com gentileza se errou.
+- FONTES: quando a pergunta for de anatomia, use os TRECHOS DOS LIVROS abaixo como base. Ao usar um trecho, cite assim: (Livro, p. N). NUNCA invente livro nem página. Se a pergunta não é de anatomia, ignore os trechos.
 - É estudo, não atendimento: não dê conduta para pacientes reais.
 - Você é uma IA: não diga que é humano.
-- Em "fatos_novos", guarde em português o que ajuda nas próximas aulas: dúvidas que se repetem, erros, temas já dominados.
-- "humor": "feliz" (acerto ou elogio), "carinho" (incentivo depois de erro), "neutro" (explicação).
+- Em "fatos_novos", guarde em português o que ajuda nas próximas conversas: faculdade e semestre do aluno, planos, dúvidas que se repetem, erros, temas já dominados.
+- "humor": "feliz" (acerto, elogio, conversa leve), "carinho" (incentivo depois de erro ou preocupação), "neutro" (explicação).
 
 Responda SOMENTE com um JSON válido, sem texto fora dele:
-{{"resposta": "o que o tutor fala, em {idioma}", "fontes_usadas": [números dos trechos usados], "fatos_novos": ["..."], "humor": "feliz" | "carinho" | "neutro"}}"""
+{{"resposta": "o que você fala, em {idioma}", "fontes_usadas": [números dos trechos usados], "fatos_novos": ["..."], "humor": "feliz" | "carinho" | "neutro"}}"""
 
 PROMPT_TERMOS = """Transforme a pergunta de um estudante de medicina em 3 a 6 termos de busca EM ESPANHOL, como aparecem em livros de anatomia (Latarjet, Rouvière, Testut).
 Responda só com os termos separados por vírgula, sem explicação.
 Pergunta: "{texto}" """
 
 
-def montar_prompt(texto, idioma="es", materia="anatomia", universidade="", tema="", fatos=(), historico=(), trechos=()):
-    persona = PERSONA.format(materia=MATERIAS.get(materia, "Anatomia"),
+def montar_prompt(texto, idioma="es", materia="anatomia", universidade="", tema="", fatos=(), historico=(), trechos=(),
+                  nome="", genero="mulher"):
+    persona = PERSONA.format(nome_prof="Clara" if genero == "mulher" else "Rafael",
+                             papel="a professora" if genero == "mulher" else "o professor",
+                             aluno=nome or "o(a) aluno(a)",
                              universidade=UNIVERSIDADES.get(universidade, "universidade dele(a)"),
                              **IDIOMAS.get(idioma, IDIOMAS["es"]))
     partes = [persona]
     if tema:
-        partes.append(f"Tema aberto no aplicativo: {tema}")
+        partes.append(f"Tema aberto na tela do aplicativo (só contexto; siga o que o aluno disser): {tema}")
     partes.append("O que você já sabe sobre o aluno:\n" + ("\n".join(f"- {f}" for f in fatos) if fatos else "- (nada ainda)"))
     if historico:
         partes.append("Conversa recente:\n" + "\n".join(f"{'Aluno' if q == 'aluno' else 'Tutor'}: {t}" for q, t in historico))
@@ -136,7 +141,7 @@ class Tutor:
         except Exception:  # noqa: BLE001
             return texto
 
-    def responder(self, aluno, texto, idioma="es", materia="anatomia", tema="", universidade=""):
+    def responder(self, aluno, texto, idioma="es", materia="anatomia", tema="", universidade="", nome="", genero="mulher"):
         idioma = idioma if idioma in IDIOMAS else "es"
         frases = FRASES[idioma]
         texto = (texto or "").strip()[:600]
@@ -151,7 +156,7 @@ class Tutor:
                         "humor": "neutro", "modo": "livro"}
             return {"resposta": frases["sem-ia"], "fontes": [], "humor": "neutro", "modo": "sem-ia"}
         prompt = montar_prompt(texto, idioma, materia, universidade, tema, self.memoria.fatos(aluno),
-                               self.memoria.historico(aluno), trechos)
+                               self.memoria.historico(aluno), trechos, nome, genero)
         try:
             dados = interpretar(self.chat(prompt))
         except Exception as erro:  # noqa: BLE001

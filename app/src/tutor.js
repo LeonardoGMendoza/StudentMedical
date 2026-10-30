@@ -36,7 +36,7 @@ export async function perguntar({ texto, idioma, tema, perfil }) {
       const r = await fetch(url.replace(/\/$/, '') + '/api/tutor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aluno: perfil.id, nome: perfil.nome || '', texto, idioma, materia: 'anatomia', tema: tema || '', universidade: perfil.univ })
+        body: JSON.stringify({ aluno: perfil.id, nome: perfil.nome || '', texto, idioma, materia: 'anatomia', tema: tema || '', universidade: perfil.univ, genero: perfil.genero })
       });
       if (r.ok) return await r.json();
     } catch (e) { /* cai no modo demo */ }

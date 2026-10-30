@@ -50,6 +50,7 @@ class Pergunta(BaseModel):
     materia: str = Field("anatomia", max_length=20)
     tema: str = Field("", max_length=40)
     universidade: str = Field("", max_length=10)
+    genero: str = Field("mulher", max_length=10)
 
 
 class TextoVoz(BaseModel):
@@ -80,7 +81,7 @@ def perguntar(p: Pergunta, request: Request):
     limitar(request)
     if not ID_OK.match(p.aluno):
         raise HTTPException(422, "Identificador inválido.")
-    return tutor.responder(p.aluno, p.texto, p.idioma, p.materia, p.tema, p.universidade)
+    return tutor.responder(p.aluno, p.texto, p.idioma, p.materia, p.tema, p.universidade, p.nome, p.genero)
 
 
 @app.delete("/api/memoria/{aluno}")
