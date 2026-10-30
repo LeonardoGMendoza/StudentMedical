@@ -107,9 +107,14 @@ async function falar(texto) {
   if (!professor || !audioLiberado) return;
   professor.parar();
   modoSom('playback');
-  if (!nuvemFalhou && precisaNuvem()) {
-    if (await falarPelaNuvem(texto)) return id === filaFala;
-    nuvemFalhou = true; setTimeout(() => { nuvemFalhou = false; }, 30000);
+  if (precisaNuvem() && (ehIOS || !nuvemFalhou)) {
+    // no iPhone a voz do aparelho fica baixinha depois do microfone: insiste na nuvem antes de desistir
+    for (let tentativa = 0; tentativa < (ehIOS ? 3 : 1); tentativa++) {
+      if (id !== filaFala) return false;
+      if (await falarPelaNuvem(texto)) return id === filaFala;
+      await new Promise(r => setTimeout(r, 700));
+    }
+    if (!ehIOS) { nuvemFalhou = true; setTimeout(() => { nuvemFalhou = false; }, 30000); }
   }
   await professor.falarComVoz(texto, { lang: VOZ_LANG[idioma], voz: escolherVoz() });
   return id === filaFala;

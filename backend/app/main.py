@@ -32,9 +32,9 @@ _pedidos = defaultdict(deque)
 
 
 def limitar(request: Request, maximo=30, janela=60):
-    """Protege o custo da Oracle: no máximo 30 pedidos por minuto por IP."""
+    """Protege o custo da Oracle: no máximo 30 perguntas (ou 120 falas) por minuto por IP."""
     ip = request.headers.get("cf-connecting-ip") or request.headers.get("x-real-ip") or (request.client.host if request.client else "?")
-    agora, fila = time.time(), _pedidos[ip]
+    agora, fila = time.time(), _pedidos[(ip, maximo)]
     while fila and agora - fila[0] > janela:
         fila.popleft()
     if len(fila) >= maximo:
@@ -94,7 +94,7 @@ def apagar_memoria(aluno: str):
 
 @app.post("/api/voz")
 def falar(t: TextoVoz, request: Request):
-    limitar(request)
+    limitar(request, maximo=120)   # aula falada = muitas frases seguidas; não pode cair para a voz do aparelho
     if voz is None:
         raise HTTPException(503, "Voz da nuvem não configurada.")
     nome_voz = VOZES.get(t.idioma, VOZES["es"]).get(t.genero, VOZES["es"]["mulher"])
