@@ -122,6 +122,44 @@ function vestir(gltf, genero, univ, nome) {
   }
 }
 
+// ---------- som no iPhone (mesma solução do VinaCare) ----------
+// Depois que o microfone liga, o iOS manda o som para o alto-falante de ligação (baixinho).
+// 1) audioSession volta o som para o alto-falante principal; 2) a voz da nuvem toca por um <audio> (canal de mídia, volume cheio).
+export const ehIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export function modoSom(tipo) { try { if (navigator.audioSession) navigator.audioSession.type = tipo; } catch (e) {} }
+modoSom('playback');
+
+const player = new Audio();
+player.setAttribute('playsinline', ''); player.preload = 'auto';
+let playerLiberado = false;
+function silencioWav() {
+  const n = 800, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+  const txt = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+  txt(0, 'RIFF'); v.setUint32(4, 36 + n, true); txt(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+  v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  txt(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+  let s = ''; b.forEach(x => { s += String.fromCharCode(x); }); return 'data:audio/wav;base64,' + btoa(s);
+}
+export function liberarPlayer() {   // chamar dentro de um toque: libera o <audio> para tocar depois sozinho
+  if (playerLiberado) return;
+  playerLiberado = true;
+  player.src = silencioWav();
+  const p = player.play(); if (p && p.catch) p.catch(() => { playerLiberado = false; });
+}
+const espera = (ms) => new Promise(r => setTimeout(r, ms));
+function tempos(texto) {
+  const palavras = texto.trim().split(/\s+/).filter(Boolean);
+  const wtimes = [], wdurations = [];
+  let t = 120;
+  for (const w of palavras) {
+    const n = w.replace(/[^\p{L}\p{N}]/gu, '').length || 1;
+    const d = Math.max(170, n * 72);
+    wtimes.push(t); wdurations.push(d);
+    t += d + (/[.,!?;:]$/.test(w) ? 260 : 50);
+  }
+  return { palavras, wtimes, wdurations, total: t + 200 };
+}
+
 export class Professor {
   constructor(caixa) {
     this.caixa = caixa;
@@ -161,12 +199,55 @@ export class Professor {
     if (on) this._timerMaos = setInterval(() => { try { this.head.speakWithHands(0, 0.7); } catch (e) {} }, 1600);
   }
 
-  liberarAudio() { try { this.head.audioCtx.resume(); } catch (e) {} }
+  liberarAudio() { try { this.head.audioCtx.resume(); } catch (e) {} liberarPlayer(); }
 
   parar() {
     this._maos(false);
+    try { player.pause(); } catch (e) {}
     try { this.head.stopSpeaking(); } catch (e) {}
     if ('speechSynthesis' in window) speechSynthesis.cancel();
+  }
+
+  _labios(texto, ms, audio) {
+    const tm = tempos(texto), k = ms / tm.total, ctx = this.head.audioCtx;
+    const buf = audio || ctx.createBuffer(1, Math.max(1, Math.ceil(ctx.sampleRate * ms / 1000)), ctx.sampleRate);
+    try {
+      this.head.speakAudio({ audio: buf, words: tm.palavras, wtimes: tm.wtimes.map(t => t * k), wdurations: tm.wdurations.map(t => t * k) }, { lipsyncLang: 'pt_br' });
+    } catch (e) {}
+  }
+
+  // Voz neural da nuvem (Azure pelo servidor): igual em qualquer celular e com volume cheio no iPhone
+  async falarNuvem(texto, url, corpo) {
+    modoSom('playback');
+    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    if (!r.ok) throw new Error('voz HTTP ' + r.status);
+    const blob = await r.blob();
+    this._maos(true);
+    try {
+      if (ehIOS && playerLiberado) {
+        const ms = await new Promise((ok, erro) => {
+          const src = URL.createObjectURL(blob);
+          let comecou = false;
+          player.onerror = () => { URL.revokeObjectURL(src); erro(new Error('player')); };
+          player.onplaying = () => {
+            if (comecou) return; comecou = true;
+            const dur = (isFinite(player.duration) && player.duration > 0 ? player.duration : tempos(texto).total / 1000) * 1000;
+            this._labios(texto, dur);
+            setTimeout(() => URL.revokeObjectURL(src), dur + 2000);
+            ok(dur);
+          };
+          player.volume = 1; player.muted = false; player.src = src;
+          const p = player.play(); if (p && p.catch) p.catch(erro);
+        });
+        await espera(ms + 250);
+      } else {
+        const ctx = this.head.audioCtx;
+        const dados = await blob.arrayBuffer();
+        const buf = await new Promise((ok, erro) => { try { const pr = ctx.decodeAudioData(dados, ok, erro); if (pr && pr.then) pr.then(ok, erro); } catch (e) { erro(e); } });
+        this._labios(texto, buf.duration * 1000, buf);
+        await espera(buf.duration * 1000 + 250);
+      }
+    } finally { this._maos(false); }
   }
 
   // Boca sincronizada com a voz do aparelho (mesma técnica do VinaCare)

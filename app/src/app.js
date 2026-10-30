@@ -1,5 +1,6 @@
 window.__smStarted = true;
-import { Professor } from './professor.js';
+import { Professor, ehIOS, modoSom } from './professor.js';
+import { conversar, boasVindas, registrarVisita, registrarTema, registrarFala, NOME_PROF } from './conversa.js';
 import { Atlas } from './atlas.js';
 import { UNIVERSIDADES } from './universidades.js';
 import { MATERIAS, TEMAS } from './conteudo/anatomia.js';
@@ -70,6 +71,15 @@ function escolherVoz() {
 }
 if ('speechSynthesis' in window) speechSynthesis.getVoices();
 
+// Voz neural da nuvem: o mesmo servidor do VinaCare (Azure). No iPhone é ela que toca alto depois do microfone.
+const VOZ_URL = ((import.meta.env && import.meta.env.VITE_VOZ_URL) || 'https://vinacare.sandlj.com.br').replace(/\/$/, '') + '/api/voz';
+let nuvemFalhou = false;
+function precisaNuvem() {
+  if (ehIOS || !('speechSynthesis' in window)) return true;
+  const v = escolherVoz();
+  return !v || !v.lang.replace('_', '-').startsWith(VOZ_LANG[idioma].slice(0, 2));
+}
+
 let filaFala = 0;
 async function falar(texto) {
   const id = ++filaFala;
@@ -78,6 +88,16 @@ async function falar(texto) {
   balao.textContent = texto;
   if (!professor || !audioLiberado) return;
   professor.parar();
+  modoSom('playback');
+  if (!nuvemFalhou && precisaNuvem()) {
+    try {
+      await professor.falarNuvem(texto, VOZ_URL, { texto: texto.slice(0, 600), assistente: NOME_PROF[perfil.genero], idioma });
+      return id === filaFala;
+    } catch (e) {
+      console.warn('Voz da nuvem indisponível', e);
+      nuvemFalhou = true; setTimeout(() => { nuvemFalhou = false; }, 60000);
+    }
+  }
   await professor.falarComVoz(texto, { lang: VOZ_LANG[idioma], voz: escolherVoz() });
   return id === filaFala;
 }
@@ -96,7 +116,7 @@ function cumprimentar() {
   liberarAudio();
   professor && professor.acenar();
   professor && professor.humor('feliz');
-  falar(t().ola(perfil.genero, perfil.nome));
+  falar(boasVindas(idioma, perfil));
 }
 document.addEventListener('pointerdown', (e) => {
   liberarAudio();
@@ -212,6 +232,7 @@ async function explicarPonto(i) {
 
 async function abrirTema(id) {
   temaAtual = TEMAS.find(x => x.id === id);
+  registrarTema(id);
   tela = 'tema'; aba = 'aula'; quizIdx = 0; quizAcertos = 0; chat.length = 0;
   $('#explodir').value = 0; atlas.explosao = 0; $('#peca').textContent = '';
   render();
@@ -298,6 +319,8 @@ function ligar() {
     if (!texto) return;
     chat.push({ quem: 'eu', texto });
     render();
+    const social = conversar(texto, idioma, perfil, mudarNome);
+    if (social) { chat.push({ quem: 'ia', texto: social }); render(); falar(social); return; }
     const r = await perguntar({ texto, idioma, tema: temaAtual && temaAtual.id, perfil });
     const resposta = r.resposta || t().naoSei;
     chat.push({ quem: 'ia', texto: resposta, fontes: r.fontes || [] });
@@ -320,7 +343,7 @@ document.querySelectorAll('.idiomas button').forEach(b => b.onclick = () => {
   render();
   if (atlas.selecionada) $('#peca').textContent = nomePeca(atlas.selecionada.userData.nome, idioma);
   if (tela === 'tema' && temaAtual) falar(t().abrirTema(temaAtual.titulo[idioma]));
-  else if (tela !== 'config') falar(t().ola(perfil.genero, perfil.nome));
+  else if (tela !== 'config') falar(boasVindas(idioma, perfil));
 });
 $('#btnTrocar').onclick = () => { calar(); tela = 'config'; render(); };
 
@@ -331,6 +354,11 @@ let rec = null, ouvindo = false, ouvido = '';
 function estadoMic(e) {
   $('#mic').dataset.estado = e;
   $('#dicaVoz').textContent = e === 'ouvindo' ? t().ouvindo : e === 'pensando' ? t().pensando : (cumprimentou ? t().falar : t().comecar);
+}
+async function mudarNome(novo) {
+  perfil.nome = novo;
+  gravar('sm.perfil', perfil);
+  vestirProfessor();   // borda o nome novo no jaleco
 }
 const tem = (txt, re) => re.test(txt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
 
@@ -346,6 +374,16 @@ async function voceDisse(texto) {
   // abrir um tema pelo nome ("vamos estudar torax")
   const alvo = TEMAS.find(tm => ['es', 'pt', 'en'].some(l => tem(texto, new RegExp(tm.titulo[l].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')))));
   if (alvo && (!temaAtual || alvo.id !== temaAtual.id) && texto.split(/\s+/).length <= 6) { estadoMic('pronto'); return abrirTema(alvo.id); }
+  // conversa do dia a dia (boa noite, como vai, você lembra de mim...) com memória
+  registrarFala('aluno', texto);
+  const social = conversar(texto, idioma, perfil, mudarNome);
+  if (social) {
+    registrarFala('professor', social);
+    if (tela === 'tema') { chat.push({ quem: 'eu', texto }, { quem: 'ia', texto: social }); if (aba === 'perguntar') render(); }
+    estadoMic('pronto');
+    professor && professor.humor('feliz');
+    return falar(social);
+  }
   // pergunta para o tutor
   estadoMic('pensando');
   const r = await perguntar({ texto, idioma, tema: temaAtual && temaAtual.id, perfil });
@@ -355,6 +393,7 @@ async function voceDisse(texto) {
     if (r.tema === temaAtual.id && r.ponto >= 0) { atlas.destacar([temaAtual.destaques[r.ponto]]); setTimeout(() => abrirComDedos(0.35), 300); }
     if (aba === 'perguntar') render();
   }
+  registrarFala('professor', resposta);
   estadoMic('pronto');
   professor && professor.humor(r.humor || 'neutro');
   await falar(resposta);
@@ -367,10 +406,10 @@ if (SR) {
     for (const r of e.results) { txt += r[0].transcript; if (r.isFinal) final = true; }
     ouvido = txt;
     $('#balao').hidden = false; $('#balao').textContent = '🎤 ' + txt;
-    if (final) { ouvindo = false; try { rec.abort(); } catch (er) {} const fala = ouvido; ouvido = ''; voceDisse(fala); }
+    if (final) { ouvindo = false; try { rec.abort(); } catch (er) {} modoSom('playback'); const fala = ouvido; ouvido = ''; voceDisse(fala); }
   };
-  rec.onerror = (e) => { ouvindo = false; ouvido = ''; estadoMic('pronto'); if (e.error === 'not-allowed') $('#dicaVoz').textContent = t().micBloqueado; };
-  rec.onend = () => { if (!ouvindo) return; ouvindo = false; if (ouvido) { const f = ouvido; ouvido = ''; voceDisse(f); } else estadoMic('pronto'); };
+  rec.onerror = (e) => { modoSom('playback'); ouvindo = false; ouvido = ''; estadoMic('pronto'); if (e.error === 'not-allowed') $('#dicaVoz').textContent = t().micBloqueado; };
+  rec.onend = () => { modoSom('playback'); if (!ouvindo) return; ouvindo = false; if (ouvido) { const f = ouvido; ouvido = ''; voceDisse(f); } else estadoMic('pronto'); };
 }
 $('#mic').onclick = (e) => {
   e.stopPropagation();
@@ -380,11 +419,12 @@ $('#mic').onclick = (e) => {
   if ($('#mic').dataset.estado === 'pensando') return;
   if (ouvindo) { try { rec.stop(); } catch (er) {} return; }
   calar();
-  try { rec.lang = VOZ_LANG[idioma]; ouvido = ''; rec.start(); ouvindo = true; estadoMic('ouvindo'); }
+  try { modoSom('play-and-record'); rec.lang = VOZ_LANG[idioma]; ouvido = ''; rec.start(); ouvindo = true; estadoMic('ouvindo'); }
   catch (er) { $('#dicaVoz').textContent = t().naoEntendi; }
 };
 
 render();
 estadoMic('pronto');
 vestirProfessor();
-if (!novoPerfil) { $('#balao').hidden = false; $('#balao').textContent = t().ola(perfil.genero, perfil.nome); }
+registrarVisita();
+if (!novoPerfil) { $('#balao').hidden = false; $('#balao').textContent = boasVindas(idioma, perfil); }
