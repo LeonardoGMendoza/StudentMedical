@@ -71,13 +71,31 @@ function escolherVoz() {
 }
 if ('speechSynthesis' in window) speechSynthesis.getVoices();
 
-// Voz neural da nuvem: o mesmo servidor do VinaCare (Azure). No iPhone é ela que toca alto depois do microfone.
-const VOZ_URL = ((import.meta.env && import.meta.env.VITE_VOZ_URL) || 'https://vinacare.sandlj.com.br').replace(/\/$/, '') + '/api/voz';
-let nuvemFalhou = false;
+// Voz neural da nuvem (Azure): primeiro o servidor do StudentMedical; se falhar, o do VinaCare.
+// No iPhone é ela que toca alto depois do microfone (pelo <audio>, canal de mídia).
+const SERVIDOR = ((import.meta.env && import.meta.env.VITE_API_URL) || 'https://studentmedical.sandlj.com.br').replace(/\/$/, '');
+const VOZES_NUVEM = [
+  { url: SERVIDOR + '/api/voz', corpo: (texto) => ({ texto, idioma, genero: perfil.genero }) },
+  { url: 'https://vinacare.sandlj.com.br/api/voz', corpo: (texto) => ({ texto, assistente: NOME_PROF[perfil.genero], idioma }) }
+];
+let nuvemFalhou = false, avisouFalha = false;
 function precisaNuvem() {
   if (ehIOS || !('speechSynthesis' in window)) return true;
   const v = escolherVoz();
   return !v || !v.lang.replace('_', '-').startsWith(VOZ_LANG[idioma].slice(0, 2));
+}
+async function falarPelaNuvem(texto) {
+  let ultimoErro = null;
+  for (const v of VOZES_NUVEM) {
+    try { await professor.falarNuvem(texto, v.url, v.corpo(texto.slice(0, 600))); return true; }
+    catch (e) { ultimoErro = e; console.warn('Voz da nuvem falhou em', v.url, e); }
+  }
+  if (!avisouFalha) {   // mostra o motivo uma vez (no iPhone não há console)
+    avisouFalha = true;
+    const b = $('#balao'); b.hidden = false;
+    b.textContent = '⚠️ voz da nuvem: ' + String((ultimoErro && ultimoErro.message) || ultimoErro);
+  }
+  return false;
 }
 
 let filaFala = 0;
@@ -90,13 +108,8 @@ async function falar(texto) {
   professor.parar();
   modoSom('playback');
   if (!nuvemFalhou && precisaNuvem()) {
-    try {
-      await professor.falarNuvem(texto, VOZ_URL, { texto: texto.slice(0, 600), assistente: NOME_PROF[perfil.genero], idioma });
-      return id === filaFala;
-    } catch (e) {
-      console.warn('Voz da nuvem indisponível', e);
-      nuvemFalhou = true; setTimeout(() => { nuvemFalhou = false; }, 60000);
-    }
+    if (await falarPelaNuvem(texto)) return id === filaFala;
+    nuvemFalhou = true; setTimeout(() => { nuvemFalhou = false; }, 30000);
   }
   await professor.falarComVoz(texto, { lang: VOZ_LANG[idioma], voz: escolherVoz() });
   return id === filaFala;
