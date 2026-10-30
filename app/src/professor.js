@@ -165,6 +165,7 @@ export class Professor {
     this.caixa = caixa;
     this.head = new TalkingHead(caixa, {
       lipsyncModules: [], lipsyncLang: 'pt_br', cameraView: 'upper', avatarMood: 'neutral', modelFPS: 30,
+      mixerGainSpeech: 3,   // mesmo volume de voz do VinaCare
       cameraRotateEnable: false, cameraZoomEnable: false, cameraPanEnable: false
     });
     this.head.lipsync['pt_br'] = new LipsyncPt_br();

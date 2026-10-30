@@ -118,11 +118,14 @@ function calar() { filaFala++; professor && professor.parar(); }
 
 // O navegador só libera o som depois de um toque: no primeiro toque o professor cumprimenta (igual ao VinaCare)
 let cumprimentou = false;
+// Igual ao VinaCare: destrava o player de áudio DENTRO de um clique/toque (o iPhone só aceita assim).
+// Chamado em todo clique; o próprio player ignora se já estiver destravado.
 function liberarAudio() {
-  if (audioLiberado) return;
   audioLiberado = true;
   professor && professor.liberarAudio();
 }
+document.addEventListener('click', liberarAudio, true);
+document.addEventListener('touchend', liberarAudio, true);
 function cumprimentar() {
   if (cumprimentou) return;
   cumprimentou = true;
@@ -131,8 +134,7 @@ function cumprimentar() {
   professor && professor.humor('feliz');
   falar(boasVindas(idioma, perfil));
 }
-document.addEventListener('pointerdown', (e) => {
-  liberarAudio();
+document.addEventListener('click', (e) => {
   // toque no palco (fora dos controles) ou no microfone = começar a conversa
   if (!cumprimentou && tela !== 'config' && e.target.closest('#palco') && !e.target.closest('.barra-atlas') && !e.target.closest('#mic')) {
     setTimeout(cumprimentar, 50);
