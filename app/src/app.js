@@ -1,5 +1,5 @@
 window.__smStarted = true;
-import { Professor, ehIOS, modoSom } from './professor.js';
+import { Professor, ehIOS, modoSom, marcarMic, prepararSom } from './professor.js';
 import { conversar, boasVindas, registrarVisita, registrarTema, registrarFala, NOME_PROF } from './conversa.js';
 import { Atlas } from './atlas.js';
 import { UNIVERSIDADES } from './universidades.js';
@@ -106,7 +106,8 @@ async function falar(texto) {
   balao.textContent = texto;
   if (!professor || !audioLiberado) return;
   professor.parar();
-  modoSom('playback');
+  await prepararSom();
+  if (id !== filaFala) return false;
   if (precisaNuvem() && (ehIOS || !nuvemFalhou)) {
     // no iPhone a voz do aparelho fica baixinha depois do microfone: insiste na nuvem antes de desistir
     for (let tentativa = 0; tentativa < (ehIOS ? 3 : 1); tentativa++) {
@@ -426,10 +427,10 @@ if (SR) {
     for (const r of e.results) { txt += r[0].transcript; if (r.isFinal) final = true; }
     ouvido = txt;
     $('#balao').hidden = false; $('#balao').textContent = '🎤 ' + txt;
-    if (final) { ouvindo = false; try { rec.abort(); } catch (er) {} modoSom('playback'); const fala = ouvido; ouvido = ''; voceDisse(fala); }
+    if (final) { ouvindo = false; try { rec.abort(); } catch (er) {} marcarMic(); modoSom('playback'); const fala = ouvido; ouvido = ''; voceDisse(fala); }
   };
   rec.onerror = (e) => { modoSom('playback'); ouvindo = false; ouvido = ''; estadoMic('pronto'); if (e.error === 'not-allowed') $('#dicaVoz').textContent = t().micBloqueado; };
-  rec.onend = () => { modoSom('playback'); if (!ouvindo) return; ouvindo = false; if (ouvido) { const f = ouvido; ouvido = ''; voceDisse(f); } else estadoMic('pronto'); };
+  rec.onend = () => { marcarMic(); modoSom('playback'); if (!ouvindo) return; ouvindo = false; if (ouvido) { const f = ouvido; ouvido = ''; voceDisse(f); } else estadoMic('pronto'); };
 }
 $('#mic').onclick = (e) => {
   e.stopPropagation();
@@ -439,7 +440,7 @@ $('#mic').onclick = (e) => {
   if ($('#mic').dataset.estado === 'pensando') return;
   if (ouvindo) { try { rec.stop(); } catch (er) {} return; }
   calar();
-  try { modoSom('play-and-record'); rec.lang = VOZ_LANG[idioma]; ouvido = ''; rec.start(); ouvindo = true; estadoMic('ouvindo'); }
+  try { marcarMic(); modoSom('play-and-record'); rec.lang = VOZ_LANG[idioma]; ouvido = ''; rec.start(); ouvindo = true; estadoMic('ouvindo'); }
   catch (er) { $('#dicaVoz').textContent = t().naoEntendi; }
 };
 

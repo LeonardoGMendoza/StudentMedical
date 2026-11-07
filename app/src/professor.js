@@ -128,6 +128,15 @@ function vestir(gltf, genero, univ, nome) {
 export const ehIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export function modoSom(tipo) { try { if (navigator.audioSession) navigator.audioSession.type = tipo; } catch (e) {} }
 modoSom('playback');
+// Depois do microfone o iOS demora um instante para sair do "modo ligação" (volume baixo).
+// Marcamos quando o mic foi usado e, antes de falar, devolvemos o som ao alto-falante principal e esperamos um pouco.
+let ultimoUsoMic = 0;
+export function marcarMic() { ultimoUsoMic = Date.now(); }
+export async function prepararSom() {
+  modoSom('playback');
+  const desde = Date.now() - ultimoUsoMic;
+  if (desde < 2000) { await new Promise(r => setTimeout(r, 350)); modoSom('playback'); }
+}
 
 const player = new Audio();
 player.setAttribute('playsinline', ''); player.preload = 'auto';
@@ -277,13 +286,14 @@ export class Professor {
       if (!('speechSynthesis' in window)) { lab(); setTimeout(acabar, total); return; }
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(texto);
-      u.lang = vozInfo.lang; u.rate = 0.95;
+      u.lang = vozInfo.lang; u.rate = 0.95; u.volume = 1;
       if (vozInfo.voz) u.voice = vozInfo.voz;
       let comecou = false;
       u.onstart = () => { if (!comecou) { comecou = true; lab(); } };
       u.onend = acabar; u.onerror = acabar;
       setTimeout(() => { if (!comecou) { comecou = true; lab(); } }, 700);
       setTimeout(acabar, total + 4000);
+      modoSom('playback');
       speechSynthesis.speak(u);
     });
   }
