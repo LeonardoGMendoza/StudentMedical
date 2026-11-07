@@ -276,5 +276,43 @@ export const TEMAS = [
         o: { es: ['Trigémino (V)', 'Facial (VII)', 'Hipogloso (XII)', 'Glosofaríngeo (IX)'], pt: ['Trigêmeo (V)', 'Facial (VII)', 'Hipoglosso (XII)', 'Glossofaríngeo (IX)'], en: ['Trigeminal (V)', 'Facial (VII)', 'Hypoglossal (XII)', 'Glossopharyngeal (IX)'] }, c: 1,
         e: { es: 'El facial. El trigémino mueve los de la masticación.', pt: 'O facial. O trigêmeo move os da mastigação.', en: 'The facial nerve. The trigeminal moves the muscles of chewing.' } }
     ]
+  },
+  {
+    id: 'arterias',
+    destaques: ["ascending aorta|arch of aorta|descending thoracic aorta|abdominal aorta", "brachiocephalic|common carotid|subclavian|vertebral|basilar", "celiac|hepatic|splenic|gastric|mesenteric|renal", "iliac|femoral|popliteal|tibial|dorsalis pedis"],
+    icone: '🩸',
+    titulo: { es: 'Arterias principales', pt: 'Artérias principais', en: 'Main arteries' },
+    livros: ['Testut-Latarjet — Tomo 2 (Angiología)', 'Pro Anatomía Clínica', 'Netter 5ª ed.'],
+    pontos: {
+      es: [
+        'La aorta nace del ventrículo izquierdo y tiene cuatro partes: ascendente, cayado, torácica descendente y abdominal. De la aorta ascendente salen las arterias coronarias.',
+        'Del cayado de la aorta salen tres ramas: tronco braquiocefálico, carótida común izquierda y subclavia izquierda. La carótida común se divide en externa (cara) e interna (encéfalo). Las vertebrales se unen en la basilar.',
+        'La aorta abdominal da el tronco celíaco (hígado, estómago y bazo), la mesentérica superior, las renales y la mesentérica inferior. Se bifurca en las ilíacas comunes a la altura de L4.',
+        'La ilíaca externa continúa como femoral al pasar bajo el ligamento inguinal, luego poplítea detrás de la rodilla, y se divide en tibial anterior (que termina en la dorsal del pie) y tibial posterior.'
+      ],
+      pt: [
+        'A aorta nasce do ventrículo esquerdo e tem quatro partes: ascendente, arco, torácica descendente e abdominal. Da aorta ascendente saem as artérias coronárias.',
+        'Do arco da aorta saem três ramos: tronco braquiocefálico, carótida comum esquerda e subclávia esquerda. A carótida comum se divide em externa (face) e interna (encéfalo). As vertebrais se unem na basilar.',
+        'A aorta abdominal dá o tronco celíaco (fígado, estômago e baço), a mesentérica superior, as renais e a mesentérica inferior. Ela se bifurca nas ilíacas comuns na altura de L4.',
+        'A ilíaca externa continua como femoral ao passar sob o ligamento inguinal, depois poplítea atrás do joelho, e se divide em tibial anterior (que termina na dorsal do pé) e tibial posterior.'
+      ],
+      en: [
+        'The aorta arises from the left ventricle and has four parts: ascending, arch, descending thoracic and abdominal. The coronary arteries leave the ascending aorta.',
+        'The aortic arch gives three branches: the brachiocephalic trunk, the left common carotid and the left subclavian. The common carotid divides into external (face) and internal (brain). The vertebral arteries join to form the basilar artery.',
+        'The abdominal aorta gives the celiac trunk (liver, stomach and spleen), the superior mesenteric, the renal and the inferior mesenteric arteries. It bifurcates into the common iliacs at L4.',
+        'The external iliac becomes the femoral artery under the inguinal ligament, then the popliteal behind the knee, and divides into the anterior tibial (ending as the dorsalis pedis) and the posterior tibial.'
+      ]
+    },
+    quiz: [
+      { p: { es: '¿Cuántas ramas salen del cayado de la aorta?', pt: 'Quantos ramos saem do arco da aorta?', en: 'How many branches leave the aortic arch?' },
+        o: { es: ['2', '3', '4', '5'], pt: ['2', '3', '4', '5'], en: ['2', '3', '4', '5'] }, c: 1,
+        e: { es: 'Tres: tronco braquiocefálico, carótida común izquierda y subclavia izquierda.', pt: 'Três: tronco braquiocefálico, carótida comum esquerda e subclávia esquerda.', en: 'Three: brachiocephalic trunk, left common carotid and left subclavian.' } },
+      { p: { es: '¿Qué arteria irriga hígado, estómago y bazo?', pt: 'Qual artéria irriga fígado, estômago e baço?', en: 'Which artery supplies the liver, stomach and spleen?' },
+        o: { es: ['Mesentérica superior', 'Tronco celíaco', 'Renal', 'Mesentérica inferior'], pt: ['Mesentérica superior', 'Tronco celíaco', 'Renal', 'Mesentérica inferior'], en: ['Superior mesenteric', 'Celiac trunk', 'Renal', 'Inferior mesenteric'] }, c: 1,
+        e: { es: 'El tronco celíaco se divide en gástrica izquierda, hepática común y esplénica.', pt: 'O tronco celíaco se divide em gástrica esquerda, hepática comum e esplênica.', en: 'The celiac trunk divides into the left gastric, common hepatic and splenic arteries.' } },
+      { p: { es: '¿Cómo se llama la arteria detrás de la rodilla?', pt: 'Como se chama a artéria atrás do joelho?', en: 'What is the artery behind the knee called?' },
+        o: { es: ['Femoral', 'Poplítea', 'Tibial anterior', 'Peronea'], pt: ['Femoral', 'Poplítea', 'Tibial anterior', 'Fibular'], en: ['Femoral', 'Popliteal', 'Anterior tibial', 'Fibular'] }, c: 1,
+        e: { es: 'La poplítea continúa a la femoral y se divide en tibial anterior y posterior.', pt: 'A poplítea continua a femoral e se divide em tibial anterior e posterior.', en: 'The popliteal continues the femoral and divides into the anterior and posterior tibial arteries.' } }
+    ]
   }
 ];

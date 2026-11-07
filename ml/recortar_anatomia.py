@@ -53,6 +53,14 @@ TEMAS = {
                          or p["name"] in ("Spleen", "Abdominal aorta", "Diaphragm")
                          or (osso(p) and tem(p["name"], "lumbar vertebra", "hip bone", "sacrum")),
     "inferior": lambda p: direita(p) and ((osso(p) and tem(p["name"], *MI_OSSO)) or (p["system"] in ("muscular", "skeletal") and tem(p["name"], *MI_MUSC))),
+    "arterias": lambda p: p["system"] == "arterial" and re.search(
+        r"^(ascending aorta|arch of aorta|descending thoracic aorta|abdominal aorta|brachiocephalic artery|pulmonary trunk|"
+        r"(left |right )(common carotid|internal carotid|subclavian|axillary|brachial|radial|ulnar|deep brachial|vertebral|"
+        r"internal thoracic|common iliac|external iliac|internal iliac|femoral|popliteal|anterior tibial|posterior tibial|"
+        r"dorsalis pedis|renal|ophthalmic|pulmonary|gastric|deep palmar arch|lateral circumflex femoral)( artery)?|"
+        r"celiac trunk|common hepatic artery|hepatic artery proper|splenic artery|superior mesenteric artery|inferior mesenteric artery|"
+        r"basilar artery|trunk of (left|right) coronary artery|trunk of anterior interventricular branch of left coronary artery|"
+        r"circumflex branch of left coronary artery|posterior interventricular branch of right coronary artery)$", p["name"].lower()) is not None,
     "pares": lambda p: p["system"] == "nervous" and p["bounds"][0][1] > 1.35,
 }
 
